@@ -11,18 +11,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 /**
  * 
  * @author tonikelope
  */
 public class ProxyStreamServer {
     
-    public static final String VERSION="8.0";
+    public static final String VERSION="8.1";
     public static final int CONNECT_TIMEOUT=30000;
     public static final int DEFAULT_PORT=1337;
     public static final int EXP_BACKOFF_BASE=2;
     public static final int EXP_BACKOFF_SECS_RETRY=1;
     public static final int EXP_BACKOFF_MAX_WAIT_TIME=128;
+    public static final int ANTI_FLOOD=1000;
     private HttpServer httpserver;
     private MainBox panel;
     private ConcurrentHashMap<String, String[]> link_cache;
@@ -51,7 +53,7 @@ public class ProxyStreamServer {
         this.panel.debug.append("Kissvideostreamer beta "+ProxyStreamServer.VERSION+" loaded! (Waiting for request...)\n\n");
         this.panel.debug.setCaretPosition( this.panel.debug.getDocument().getLength() );
         this.httpserver.createContext(context, new ProxyStreamServerHandler(this));
-        this.httpserver.setExecutor(java.util.concurrent.Executors.newSingleThreadExecutor());
+        this.httpserver.setExecutor(java.util.concurrent.Executors.newCachedThreadPool());
         this.httpserver.start();
     }
     
@@ -86,35 +88,77 @@ public class ProxyStreamServer {
         this.link_cache.remove(link);
     }
     
-   public String[] getMegaFileMetadata(String link, javax.swing.JApplet panel) throws IOException
+   public synchronized String[] getMegaFileMetadata(String link, javax.swing.JApplet panel) throws IOException, InterruptedException
    {
+        this.getPanel().debug.append("Anti-flood ("+(ANTI_FLOOD/1000)+" secs)...\n\n");
+               
+        this.getPanel().debug.setCaretPosition( this.getPanel().debug.getDocument().getLength() );
+               
+        Thread.sleep(ANTI_FLOOD);
+       
         String[] file_info=null;
-        int retry=0, mc_error_code;
-        boolean mc_error;
+        int retry=0, error_code=0;
+        boolean error;
 
         do
         {
-            mc_error=false;
+            error=false;
 
             try
             {
-                 file_info = MegaCrypterAPI.getMegaFileMetadata(link, panel);
+                if( MiscTools.findFirstRegex("://mega\\.co\\.nz/", link, 0) != null)
+                {
+                    MegaAPI ma = new MegaAPI();
+                    
+                    file_info = ma.getMegaFileMetadata(link);
+                }    
+                else
+                {
+                    file_info = MegaCrypterAPI.getMegaFileMetadata(link, panel);    
+                } 
+
+            }
+            catch(MegaAPIException e)
+            {
+                error=true;
+
+                error_code = Integer.parseInt(e.getMessage());
+
+                    for(long i=MiscTools.getWaitTimeExpBackOff(retry++, EXP_BACKOFF_BASE, EXP_BACKOFF_SECS_RETRY, EXP_BACKOFF_MAX_WAIT_TIME); i>0; i--)
+                    {
+                        if(error_code == -18)
+                        {
+                            this.printStatusError("File temporarily unavailable! (Retrying in "+i+" secs...)");
+                        }
+                        else
+                        {
+                            this.printStatusError("MegaAPIException error "+e.getMessage()+" (Retrying in "+i+" secs...)");
+                        }
+
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ex) {}
+                    }
             }
             catch(MegaCrypterAPIException e)
             {
-                mc_error=true;
+                error=true;
 
-                mc_error_code = Integer.parseInt(e.getMessage());
+                error_code = Integer.parseInt(e.getMessage());
 
-                if(mc_error_code == 23)
+                if(error_code == 23)
                 {
+                    throw new IOException("MegaCrypterAPIException error "+e.getMessage());
+                }
+                else if(error_code == 22)
+                { 
                     throw new IOException("MegaCrypterAPIException error "+e.getMessage());
                 }
                 else
                 {
                     for(long i=MiscTools.getWaitTimeExpBackOff(retry++, EXP_BACKOFF_BASE, EXP_BACKOFF_SECS_RETRY, EXP_BACKOFF_MAX_WAIT_TIME); i>0; i--)
                     {
-                        if(mc_error_code == -18)
+                        if(error_code == -18)
                         {
                             this.printStatusError("File temporarily unavailable! (Retrying in "+i+" secs...)");
                         }
@@ -130,29 +174,39 @@ public class ProxyStreamServer {
                 }
             }
 
-        }while(mc_error);
+        }while(error);
         
         return file_info;
     }
         
-   public String getMegaFileDownloadUrl(String link) throws IOException
+   public synchronized String getMegaFileDownloadUrl(String link) throws IOException, InterruptedException
    {
+        this.getPanel().debug.append("Anti-flood ("+(ANTI_FLOOD/1000)+" secs)...\n\n");
+               
+        this.getPanel().debug.setCaretPosition( this.getPanel().debug.getDocument().getLength() );
+               
+        Thread.sleep(ANTI_FLOOD);
+       
         String dl_url=null;
         int retry=0, error_code;
         boolean error;
-        MegaAPI ma = null;
-                 
-        if(link.indexOf("#!")!=-1) {
-            ma = new MegaAPI();
-        }
-        
+                
         do
         {
             error=false;
             
             try
             {
-                 dl_url = ma==null?MegaCrypterAPI.getMegaFileDownloadUrl(link):ma.getMegaFileDownloadUrl(link);
+                if( MiscTools.findFirstRegex("://mega\\.co\\.nz/", link, 0) != null)
+                {
+                    MegaAPI ma = new MegaAPI();
+
+                    dl_url = ma.getMegaFileDownloadUrl(link);
+                }    
+                else
+                {
+                    dl_url = MegaCrypterAPI.getMegaFileDownloadUrl(link);
+                }
             }
             catch(MegaAPIException e)
             {

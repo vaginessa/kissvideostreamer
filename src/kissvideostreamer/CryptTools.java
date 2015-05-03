@@ -1,7 +1,4 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
+
 package kissvideostreamer;
 
 import java.io.IOException;
@@ -15,15 +12,13 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-/**
- *
- * @author tonikelope
- */
+
 public class CryptTools {
     
     public static Cipher genDecrypter(String algo, String mode, byte[] key, byte[] iv) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException
     {
         SecretKeySpec skeySpec = new SecretKeySpec(key, algo); 
+        
         Cipher decryptor = Cipher.getInstance(mode);
 
         IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
@@ -36,6 +31,7 @@ public class CryptTools {
     public static Cipher genCrypter(String algo, String mode, byte[] key, byte[] iv) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException
     {
         SecretKeySpec skeySpec = new SecretKeySpec(key, algo); 
+        
         Cipher cryptor = Cipher.getInstance(mode);
 
         IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
@@ -45,7 +41,7 @@ public class CryptTools {
         return cryptor;
     }
     
-    public static byte[] initKey(String key_string) throws IOException
+    public static byte[] initMEGALinkKey(String key_string) throws IOException
     {
         int[] int_key = MiscTools.bin2i32a(MiscTools.UrlBASE642Bin(key_string));
         int[] k=new int[4];
@@ -58,7 +54,7 @@ public class CryptTools {
         return MiscTools.i32a2bin(k);
     }     
     
-    public static byte[] initIV(String key_string) throws IOException
+    public static byte[] initMEGALinkKeyIV(String key_string) throws IOException
     {
         int[] int_key =MiscTools.bin2i32a(MiscTools.UrlBASE642Bin(key_string));
         int[] iv = new int[4];
@@ -71,7 +67,7 @@ public class CryptTools {
         return MiscTools.i32a2bin(iv);
     }
         
-    public static byte[] forwardIV(byte[] iv, long forward_bytes)
+    public static byte[] forwardMEGALinkKeyIV(byte[] iv, long forward_bytes)
     {
         byte[] new_iv = new byte[iv.length];
    
@@ -110,5 +106,4 @@ public class CryptTools {
 
         return xor; 
     }
-    
 }

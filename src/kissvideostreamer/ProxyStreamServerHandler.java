@@ -29,8 +29,6 @@ import netscape.javascript.JSObject;
  */
 public class ProxyStreamServerHandler implements HttpHandler {
     
-    public static final int ANTI_FLOOD=1000;
-    
     private ProxyStreamServer proxy;
         
         public ProxyStreamServerHandler(ProxyStreamServer proxy) {
@@ -63,11 +61,6 @@ public class ProxyStreamServerHandler implements HttpHandler {
                         this.proxy.getPanel().debug.append(aux.getKey()+": "+aux.getValue().get(0)+"\n");
                     }
  
-               this.proxy.getPanel().debug.append("Anti-vlc-flood ("+(ANTI_FLOOD/1000)+" secs)...\n\n");
-               
-               this.proxy.getPanel().debug.setCaretPosition( this.proxy.getPanel().debug.getDocument().getLength() );
-               
-               Thread.sleep(ANTI_FLOOD);
 
                 String url_path = xchg.getRequestURI().getPath();
             
@@ -225,11 +218,11 @@ public class ProxyStreamServerHandler implements HttpHandler {
                    urlConn.setConnectTimeout(ProxyStreamServer.CONNECT_TIMEOUT);
                    is = urlConn.getInputStream();
                    
-                   byte[] iv = CryptTools.initIV(file_info[2]);
+                   byte[] iv = CryptTools.initMEGALinkKeyIV(file_info[2]);
 
                    try {
 
-                       cis = new CipherInputStream(is, CryptTools.genDecrypter("AES", "AES/CTR/NoPadding", CryptTools.initKey(file_info[2]), (header_range!=null && (ranges[0]-sync_bytes)>0)?CryptTools.forwardIV(iv, ranges[0]-sync_bytes):iv));
+                       cis = new CipherInputStream(is, CryptTools.genDecrypter("AES", "AES/CTR/NoPadding", CryptTools.initMEGALinkKey(file_info[2]), (header_range!=null && (ranges[0]-sync_bytes)>0)?CryptTools.forwardMEGALinkKeyIV(iv, ranges[0]-sync_bytes):iv));
 
                    } catch (    NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException ex) {
                        Logger.getLogger(ProxyStreamServer.class.getName()).log(Level.SEVERE, null, ex);
