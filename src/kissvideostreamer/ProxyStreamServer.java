@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
  */
 public class ProxyStreamServer {
     
-    public static final String VERSION="8.1";
+    public static final String VERSION="8.2";
     public static final int CONNECT_TIMEOUT=30000;
     public static final int DEFAULT_PORT=1337;
     public static final int EXP_BACKOFF_BASE=2;
@@ -29,6 +29,7 @@ public class ProxyStreamServer {
     private MainBox panel;
     private ConcurrentHashMap<String, String[]> link_cache;
     private ContentType ctype;
+   
     
     public MainBox getPanel()
     {
@@ -114,7 +115,8 @@ public class ProxyStreamServer {
                 }    
                 else
                 {
-                    file_info = MegaCrypterAPI.getMegaFileMetadata(link, panel);    
+                    file_info = MegaCrypterAPI.getMegaFileMetadata(link, panel); 
+ 
                 } 
 
             }
@@ -179,7 +181,7 @@ public class ProxyStreamServer {
         return file_info;
     }
         
-   public synchronized String getMegaFileDownloadUrl(String link) throws IOException, InterruptedException
+   public synchronized String getMegaFileDownloadUrl(String link, String pass_hash, String noexpire_token) throws IOException, InterruptedException
    {
         this.getPanel().debug.append("Anti-flood ("+(ANTI_FLOOD/1000)+" secs)...\n\n");
                
@@ -205,7 +207,7 @@ public class ProxyStreamServer {
                 }    
                 else
                 {
-                    dl_url = MegaCrypterAPI.getMegaFileDownloadUrl(link);
+                    dl_url = MegaCrypterAPI.getMegaFileDownloadUrl(link, pass_hash, noexpire_token);
                 }
             }
             catch(MegaAPIException e)

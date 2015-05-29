@@ -30,6 +30,10 @@ import netscape.javascript.JSObject;
 public class ProxyStreamServerHandler implements HttpHandler {
     
     private ProxyStreamServer proxy;
+    
+    private String pass_hash;
+    
+    private String noexpire_token;
         
         public ProxyStreamServerHandler(ProxyStreamServer proxy) {
            
@@ -99,19 +103,24 @@ public class ProxyStreamServerHandler implements HttpHandler {
                
                if(cache_info!=null) { 
                    
-                    file_info = new String[3];
+                    file_info = new String[6];
                    
                     System.arraycopy( cache_info, 0, file_info, 0, file_info.length );
+                    
                } else {
                     
                     file_info = this.proxy.getMegaFileMetadata(link, this.proxy.getPanel());
                    
-                    cache_info = new String[4];
+                    cache_info = new String[6];
                     
                     System.arraycopy( file_info, 0, cache_info, 0, file_info.length );
                     
-                    cache_info[3]=null;
+                    cache_info[5]=null; 
                }
+               
+                this.pass_hash = file_info[3];
+                    
+                this.noexpire_token = file_info[4];
                
                this.proxy.getPanel().getJSwin().eval("if(typeof update_vlc_file_name == 'function'){update_vlc_file_name('"+file_info[0]+"');}");
                
@@ -133,15 +142,15 @@ public class ProxyStreamServerHandler implements HttpHandler {
 
                    String temp_url;
                    
-                   if(cache_info[3]!=null) {
+                   if(cache_info[5]!=null) {
                        
-                       temp_url = cache_info[3];
+                       temp_url = cache_info[5];
                        
                        if(!this.proxy.checkDownloadUrl(temp_url)) {
                            
-                           temp_url = this.proxy.getMegaFileDownloadUrl(link);
+                           temp_url = this.proxy.getMegaFileDownloadUrl(link, this.pass_hash, this.noexpire_token);
                            
-                           cache_info[3] = temp_url;
+                           cache_info[5] = temp_url;
                            
                            this.proxy.getPanel().debug.append("Using NEW URL\n\n");
                        
@@ -151,9 +160,9 @@ public class ProxyStreamServerHandler implements HttpHandler {
                        }
                            
                    } else {
-                       temp_url = this.proxy.getMegaFileDownloadUrl(link);
+                       temp_url = this.proxy.getMegaFileDownloadUrl(link, this.pass_hash, this.noexpire_token);
                        
-                       cache_info[3] = temp_url;
+                       cache_info[5] = temp_url;
                        
                        this.proxy.updateLinkCache(link, cache_info);
                    }
