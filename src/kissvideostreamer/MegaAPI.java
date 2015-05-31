@@ -59,6 +59,7 @@ public class MegaAPI {
         conn.setDoOutput(true);
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/json");
+        conn.setRequestProperty("User-Agent", MainBox.USER_AGENT);
         
         OutputStream out;
         out = conn.getOutputStream();
@@ -112,6 +113,7 @@ public class MegaAPI {
         conn.setDoOutput(true);
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/json");
+        conn.setRequestProperty("User-Agent", MainBox.USER_AGENT);
         
         OutputStream out;
         out = conn.getOutputStream();

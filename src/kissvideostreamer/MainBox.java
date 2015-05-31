@@ -18,6 +18,7 @@ public class MainBox extends javax.swing.JApplet {
     
     private ProxyStreamServer streamserver;
     private JSObject JSwin;
+    public static final String USER_AGENT="Mozilla/5.0 (X11; Linux x86_64; rv:38.0) Gecko/20100101 Firefox/38.0";
 
     /**
      * Initializes the applet MainBox

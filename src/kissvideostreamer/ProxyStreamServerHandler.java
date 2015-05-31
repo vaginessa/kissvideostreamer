@@ -31,6 +31,12 @@ public class ProxyStreamServerHandler implements HttpHandler {
     
     private ProxyStreamServer proxy;
     
+    private String file_name;
+    
+    private long file_size;
+    
+    private String file_key;
+    
     private String pass_hash;
     
     private String noexpire_token;
@@ -105,7 +111,7 @@ public class ProxyStreamServerHandler implements HttpHandler {
                    
                     file_info = new String[6];
                    
-                    System.arraycopy( cache_info, 0, file_info, 0, file_info.length );
+                    System.arraycopy( cache_info, 0, file_info, 0, cache_info.length );
                     
                } else {
                     
@@ -118,13 +124,28 @@ public class ProxyStreamServerHandler implements HttpHandler {
                     cache_info[5]=null; 
                }
                
-                this.pass_hash = file_info[3];
-                    
-                this.noexpire_token = file_info[4];
+               this.file_name = file_info[0];
                
-               this.proxy.getPanel().getJSwin().eval("if(typeof update_vlc_file_name == 'function'){update_vlc_file_name('"+file_info[0]+"');}");
+               this.file_size = Long.parseLong(file_info[1]);
                
-               String file_ext = file_info[0].substring(file_info[0].lastIndexOf(".")+1).toLowerCase();
+               this.file_key = file_info[2];
+               
+               if(file_info.length == 5)
+               {
+                   this.pass_hash = file_info[3];
+                   
+                   this.noexpire_token = file_info[4];
+                   
+               } else {
+                   this.pass_hash = null;
+                   
+                   this.noexpire_token = null;
+               }
+                   
+         
+               this.proxy.getPanel().getJSwin().eval("if(typeof update_vlc_file_name == 'function'){update_vlc_file_name('"+this.file_name+"');}");
+               
+               String file_ext = this.file_name.substring(this.file_name.lastIndexOf(".")+1).toLowerCase();
 
                resheaders.add("Content-Type", this.proxy.getCtype().getMIME(file_ext));
                
@@ -205,11 +226,11 @@ public class ProxyStreamServerHandler implements HttpHandler {
                        
                        } else {
                            
-                           clength = Long.parseLong(file_info[1]) - ranges[0];
+                           clength = this.file_size - ranges[0];
                        
                        }
 
-                       resheaders.add("Content-Range", "bytes "+ranges[0]+"-"+(ranges[1]>=0?ranges[1]:(Long.parseLong(file_info[1])-1))+"/"+file_info[1]);
+                       resheaders.add("Content-Range", "bytes "+ranges[0]+"-"+(ranges[1]>=0?ranges[1]:(this.file_size-1))+"/"+this.file_size);
                        
                        xchg.sendResponseHeaders(206, clength);
                        
@@ -218,7 +239,7 @@ public class ProxyStreamServerHandler implements HttpHandler {
                        this.proxy.getPanel().debug.append("Range requested -> "+ranges[0]+"-"+(ranges[1]>=0?ranges[1]:"")+" (sync_bytes: "+sync_bytes+")\n\n");
                    } else {
                       
-                       xchg.sendResponseHeaders(200, Long.parseLong(file_info[1]));
+                       xchg.sendResponseHeaders(200, this.file_size);
                        
                        url = new URL(temp_url);
                    }
@@ -227,11 +248,11 @@ public class ProxyStreamServerHandler implements HttpHandler {
                    urlConn.setConnectTimeout(ProxyStreamServer.CONNECT_TIMEOUT);
                    is = urlConn.getInputStream();
                    
-                   byte[] iv = CryptTools.initMEGALinkKeyIV(file_info[2]);
+                   byte[] iv = CryptTools.initMEGALinkKeyIV(this.file_key);
 
                    try {
 
-                       cis = new CipherInputStream(is, CryptTools.genDecrypter("AES", "AES/CTR/NoPadding", CryptTools.initMEGALinkKey(file_info[2]), (header_range!=null && (ranges[0]-sync_bytes)>0)?CryptTools.forwardMEGALinkKeyIV(iv, ranges[0]-sync_bytes):iv));
+                       cis = new CipherInputStream(is, CryptTools.genDecrypter("AES", "AES/CTR/NoPadding", CryptTools.initMEGALinkKey(this.file_key), (header_range!=null && (ranges[0]-sync_bytes)>0)?CryptTools.forwardMEGALinkKeyIV(iv, ranges[0]-sync_bytes):iv));
 
                    } catch (    NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException ex) {
                        Logger.getLogger(ProxyStreamServer.class.getName()).log(Level.SEVERE, null, ex);
